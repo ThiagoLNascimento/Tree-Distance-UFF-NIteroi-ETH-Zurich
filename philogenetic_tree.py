@@ -73,5 +73,5 @@ if __name__ == '__main__':
 
         distances[-1].append(total_distance) 
 
-    while len(combination) > 1:
-        pass
+    # while len(combination) > 1:
+    #     pass
