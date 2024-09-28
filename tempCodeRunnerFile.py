@@ -1,0 +1,2 @@
+
+        print(intermediate_tree)

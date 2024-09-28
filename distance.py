@@ -79,7 +79,7 @@ def isomorphism_subtree(node1, node2, trees):
         
         return isomorphic, label1_aux, label2_aux, leaves
         
-    return 0, 0, 0, 0
+    return -1, -1, -1, -1
 
 
 # For a defined pair of nodes, will verify if there ir an isomorphic subtree in the almost v tree
@@ -140,10 +140,11 @@ def almost_v_tree(father1, father2, trees):
 def v_tree(father1, father2, trees):  
     isomorphic = []
     iso, values_1, values_2, leaves = isomorphism_subtree(father1, father2, trees)
-    for i in iso:
-        trees[0].nodes[i[0]]["moved"] = 1
-        trees[1].nodes[i[1]]["moved"] = 1
-    isomorphic.append(iso)
+    if iso != -1:
+        for i in iso:
+            trees[0].nodes[i[0]]["moved"] = 1
+            trees[1].nodes[i[1]]["moved"] = 1
+        isomorphic.append(iso)
     return isomorphic, 0, leaves
 
 
@@ -236,8 +237,8 @@ def get_all_successors(tree, node, list, trees):
 
     return
 
-def distance(trees, number_leaves):
-    
+
+def calc_distance(trees, number_leaves):
 
     initial_size_tree1 = len(trees[0])
     initial_size_tree2 = len(trees[1])
@@ -252,52 +253,76 @@ def distance(trees, number_leaves):
     start = time.time()
 
     while number_leaves != 0:
+        
+        if trees[0].nodes[nodes[0]]["moved"] == 0 and trees[1].nodes[nodes[1]]["moved"] == 0:
+                
+            # List of element to remove from both trees 
+            # index 0 refers to the first tree while index 1 refers to the second tree
+            set_tree = [[], []]
 
-        while trees[1].nodes[nodes[1]]["moved"] == 1:
+            iso, is_v_tree, leaves = v_tree(nodes[0], nodes[1], trees)
+            
+            
+            if leaves != -1:
+                number_leaves -= leaves
+                for i in iso:
+                    for j in range(len(i)):
+                        set_tree[0].append(i[j][0])
+                        set_tree[1].append(i[j][1])
+
+                path_up, path_down = path_leaves(set_tree, trees)
+
+                for i in path_up:
+                    aux = path_up.get(i)
+                    distance += 1
+
+                    for j in aux:
+                        trees[0].remove_edge(i, j)
+                        trees[0].add_edge(next(trees[0].predecessors(i)), j)
+
+                    intermediate_tree.append([trees[0].copy(), distance])
+
+                path_down_sorted = list(path_down.keys())
+                path_down_sorted.sort()
+
+                for i in path_down_sorted:
+                    aux = path_down.get(i)
+                    distance += 1
+
+                    for j in aux:
+                        trees[0].remove_edge(next(trees[0].predecessors(j)), j)
+                        trees[0].add_edge(i, j)
+
+                    intermediate_tree.append([trees[0].copy(), distance])
+
             nodes[1] += 1
+            if nodes[0] == 5 and nodes[1] == 5:
+                    print("yay1")
 
-        # List of element to remove from both trees 
-        # index 0 refers to the first tree while index 1 refers to the second tree
-        set_tree = [[], []]
+            if nodes[1] >= len(trees[1]):
+                nodes[0] += 1
+                nodes[1] = 0
+                if nodes[0] == 5 and nodes[1] == 5:
+                    print("yay2")    
 
-        iso, is_v_tree, leaves = v_tree(nodes[0], nodes[1], trees)
-        number_leaves -= leaves
-
-        for i in iso:
-            for j in range(len(i)):
-                set_tree[0].append(i[j][0])
-                set_tree[1].append(i[j][1])
-
-        path_up, path_down = path_leaves(set_tree, trees)
-
-        for i in path_up:
-            aux = path_up.get(i)
-            distance += 1
-
-            for j in aux:
-                trees[0].remove_edge(i, j)
-                trees[0].add_edge(next(trees[0].predecessors(i)), j)
-
-                intermediate_tree.append([trees[0].copy(), distance])
-
-        path_down_sorted = list(path_down.keys())
-        path_down_sorted.sort()
-
-        for i in path_down_sorted:
-            aux = path_down.get(i)
-            distance += 1
-
-            for j in aux:
-                trees[0].remove_edge(next(trees[0].predecessors(j)), j)
-                trees[0].add_edge(i, j)
-
-                intermediate_tree.append([trees[0].copy(), distance])
+        elif trees[1].nodes[nodes[1]]["moved"] == 1:
+            nodes[1] += 1
+            if nodes[1] >= len(trees[1]):
+                nodes[0] += 1
+                nodes[1] = 0
+        
+        else:
+            nodes[0] += 1
+            nodes[1] = 0            
+    
 
     distance += initial_size_tree1 - initial_size_tree2
     end = time.time()
 
-    print(distance)
-    print(end - start)
-    
-trees, number_leaves = input_trees()
-distance(trees, number_leaves)
+
+    return distance, end - start, intermediate_tree
+
+if __name__ == '__main__':
+    trees, number_leaves = input_trees()
+    total_distance, duration, intermediate_tree = calc_distance(trees, number_leaves)
+    print(total_distance)
