@@ -16,22 +16,26 @@ def input_trees():
     leaves = 0
 
     for line in lines:
+        level = 0
         trees.append(nx.DiGraph())
         newick = line.split()
-        trees[-1].add_node(0, value= 0, moved= 0)
+        trees[-1].add_node(0, value= 0, moved= 0, level= 0)
         current_node = 0
         new_node = 0
         for i in range(len(newick)):
 
             if newick[i] == "(":
                 new_node += 1
+                level += 1
                 trees[-1].add_edge(current_node, new_node)
                 trees[-1].nodes[new_node]["value"] = 0
                 trees[-1].nodes[new_node]["moved"] = 0
+                trees[-1].nodes[new_node]["level"] = level
                 current_node = new_node
         
             elif newick[i] == ")":
                 current_node = next(trees[-1].predecessors(current_node))
+                level -= 1
             
             else:
                 number = int(newick[i])
@@ -39,9 +43,10 @@ def input_trees():
                 trees[-1].add_edge(current_node, new_node)
                 trees[-1].nodes[new_node]["value"] = number
                 trees[-1].nodes[new_node]["moved"] = 0
+                trees[-1].nodes[new_node]["level"] = level + 1
                 leaves = leaves + 1
 
-        # print(graph_str(trees[-1]))
+        print(graph_str(trees[-1]))
     
     return trees, leaves / len(trees)
 
@@ -243,6 +248,7 @@ def distance(trees, number_leaves):
 
     distance = 0
     nodes = [0, 0]
+    intermediate_tree = []
     start = time.time()
 
     while number_leaves != 0:
@@ -265,11 +271,28 @@ def distance(trees, number_leaves):
         path_up, path_down = path_leaves(set_tree, trees)
 
         for i in path_up:
-            distance += len(path_up[i])
+            aux = path_up.get(i)
+            distance += 1
 
-        for i in path_down:
-            distance += len(path_down[i])
-                
+            for j in aux:
+                trees[0].remove_edge(i, j)
+                trees[0].add_edge(next(trees[0].predecessors(i)), j)
+
+                intermediate_tree.append([trees[0].copy(), distance])
+
+        path_down_sorted = list(path_down.keys())
+        path_down_sorted.sort()
+
+        for i in path_down_sorted:
+            aux = path_down.get(i)
+            distance += 1
+
+            for j in aux:
+                trees[0].remove_edge(next(trees[0].predecessors(j)), j)
+                trees[0].add_edge(i, j)
+
+                intermediate_tree.append([trees[0].copy(), distance])
+
     distance += initial_size_tree1 - initial_size_tree2
     end = time.time()
 
