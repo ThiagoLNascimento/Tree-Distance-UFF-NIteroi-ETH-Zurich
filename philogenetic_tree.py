@@ -55,23 +55,36 @@ def input_trees():
 
 if __name__ == '__main__':
     trees, number_leaves = input_trees()
-    min = sys.maxsize
-    distances = []
-    elements = []
     combination = list(combinations(range(len(trees)), 2))
 
-    for i in combination:
-        distances.append([i[0], i[1]])
-    
-        new = [trees[i[0]].copy(),trees[i[1]].copy()]    
+    while len(combination) > 1:
 
-        total_distance, duration, intermediate_tree = distance.calc_distance(new, number_leaves)
-    
-        if total_distance <= min:
-            min = total_distance
-            elements = i
+        min = sys.maxsize
+        combination = list(combinations(range(len(trees)), 2))
+        current_index = 0
+        combination_index = 0
+        distances = []
 
-        distances[-1].append(total_distance) 
+        for i in combination:
+            print(current_index)
+            
+            new = [trees[i[0]].copy(),trees[i[1]].copy()]    
+            total_distance, duration, intermediate_tree = distance.calc_distance(new, number_leaves)
 
-    # while len(combination) > 1:
-    #     pass
+            try:
+                if len(intermediate_tree) == 0:
+                    distances.append([i[0], i[1], trees[i[0]].copy()])
+                else:
+                    distances.append([i[0], i[1], intermediate_tree[total_distance//2][0].copy()])
+            except IndexError:
+                distances.append([i[0], i[1], trees[intermediate_tree[-2]].copy()])
+
+            if total_distance <= min:
+                min = total_distance
+                combination_index = current_index
+
+            current_index += 1
+
+        trees.pop(distances[combination_index][1]) 
+        trees.pop(distances[combination_index][0])
+        trees.append(distances[combination_index][2])
