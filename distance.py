@@ -45,8 +45,6 @@ def input_trees():
                 trees[-1].nodes[new_node]["moved"] = 0
                 trees[-1].nodes[new_node]["level"] = level + 1
                 leaves = leaves + 1
-
-        print(graph_str(trees[-1]))
     
     return trees, leaves / len(trees)
 
@@ -120,7 +118,6 @@ def almost_v_tree(father1, father2, trees):
                 size += 1 
                 compatible_pair[0][0].append(i)
                 compatible_pair[1][0].append(j)
-                print(compatible_pair)
                 # compatible_pair[0][1].append(values_1)
                 # compatible_pair[1][1].append(values_2)
                 isomorphic.append(iso)
@@ -250,10 +247,29 @@ def calc_distance(trees, number_leaves):
     distance = 0
     nodes = [0, 0]
     intermediate_tree = []
+    for i in trees[0]:
+        trees[0].nodes[i]["moved"] = 0
+
+    for i in trees[1]:
+        trees[1].nodes[i]["moved"] = 0
     start = time.time()
 
+    # print(list(trees[0].nodes(data=True)))
+    # print(list(trees[1].nodes(data=True)))
+
     while number_leaves != 0:
-        
+
+        try:
+            trees[1].nodes[nodes[1]]
+        except KeyError:
+            nodes[0] += 1
+            nodes[1] = 0
+            try:
+                trees[0].nodes[nodes[0]]
+            except:
+                break
+
+            
         if trees[0].nodes[nodes[0]]["moved"] == 0 and trees[1].nodes[nodes[1]]["moved"] == 0:
                 
             # List of element to remove from both trees 
@@ -277,7 +293,10 @@ def calc_distance(trees, number_leaves):
                     distance += 1
 
                     for j in aux:
-                        trees[0].remove_edge(i, j)
+                        try:
+                            trees[0].remove_edge(i, j)
+                        except:
+                            pass
                         trees[0].add_edge(next(trees[0].predecessors(i)), j)
 
                     intermediate_tree.append([trees[0].copy(), distance])
@@ -296,14 +315,6 @@ def calc_distance(trees, number_leaves):
                     intermediate_tree.append([trees[0].copy(), distance])
 
             nodes[1] += 1
-            if nodes[0] == 5 and nodes[1] == 5:
-                    print("yay1")
-
-            if nodes[1] >= len(trees[1]):
-                nodes[0] += 1
-                nodes[1] = 0
-                if nodes[0] == 5 and nodes[1] == 5:
-                    print("yay2")    
 
         elif trees[1].nodes[nodes[1]]["moved"] == 1:
             nodes[1] += 1
@@ -325,4 +336,3 @@ def calc_distance(trees, number_leaves):
 if __name__ == '__main__':
     trees, number_leaves = input_trees()
     total_distance, duration, intermediate_tree = calc_distance(trees, number_leaves)
-    print(total_distance)
