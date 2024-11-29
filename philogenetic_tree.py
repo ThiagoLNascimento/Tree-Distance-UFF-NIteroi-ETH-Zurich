@@ -10,7 +10,7 @@ import sys
 # Read input file (format Newick)
 def input_trees():
     
-    f = open("Input.txt", "r")
+    f = open("dataHou18.txt", "r")
 
     lines = f.readlines()
     trees = []
@@ -56,6 +56,11 @@ def input_trees():
 if __name__ == '__main__':
     trees, number_leaves = input_trees()
     combination = list(combinations(range(len(trees)), 2))
+    start = time.time()
+
+    first_interation = 0
+    closest = 0
+    sum_distance = 0
 
     while len(combination) > 1:
 
@@ -64,27 +69,64 @@ if __name__ == '__main__':
         current_index = 0
         combination_index = 0
         distances = []
-
         for i in combination:
-            print(current_index)
-            
-            new = [trees[i[0]].copy(),trees[i[1]].copy()]    
+            new = [trees[i[0]].copy(),trees[i[1]].copy()]
+                
             total_distance, duration, intermediate_tree = distance.calc_distance(new, number_leaves)
 
             try:
                 if len(intermediate_tree) == 0:
                     distances.append([i[0], i[1], trees[i[0]].copy()])
+                # elif len(intermediate_tree) == 1:
+                #     distances.append([i[0], i[1], intermediate_tree[0].copy()])
                 else:
                     distances.append([i[0], i[1], intermediate_tree[total_distance//2][0].copy()])
             except IndexError:
-                distances.append([i[0], i[1], trees[intermediate_tree[-2]].copy()])
+                distances.append([i[0], i[1], intermediate_tree[-2].copy()])
 
             if total_distance <= min:
                 min = total_distance
                 combination_index = current_index
 
+            if first_interation == 0 :
+                sum_distance += total_distance
+                if closest < total_distance:
+                    closest = total_distance
+
             current_index += 1
+        
+        first_interation = 1
 
         trees.pop(distances[combination_index][1]) 
         trees.pop(distances[combination_index][0])
         trees.append(distances[combination_index][2])
+
+
+    end = time.time()
+
+    f = open("Output_dataHou18.txt", "w")
+    # f.write("Consensus tree =")
+    consensus = trees[0].copy()
+    # f.write(graph_str(consensus))
+
+    f.write("Duration = ")
+    f.write(str(end - start))
+
+    # Calcute the maximum distance between the inputs and the consensus
+    max = 0
+    sum = 0
+    trees, number_leaves = input_trees()
+    for i in trees:
+        new = [i.copy(),consensus.copy()]    
+        total_distance, duration, intermediate_tree = distance.calc_distance(new, number_leaves)
+
+        if total_distance > max:
+            max = total_distance
+
+        sum += total_distance
+
+    f.write("\nClosest = ")
+    f.write(str(abs(max - (closest)/2)))
+
+    f.write("\nMedian = ")
+    f.write(str(abs(sum - (sum_distance)/2)))
