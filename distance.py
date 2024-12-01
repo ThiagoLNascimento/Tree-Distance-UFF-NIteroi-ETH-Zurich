@@ -1,7 +1,7 @@
 import networkx as nx
 from networkx.algorithms import isomorphism
 from networkx_algo_common_subtree.tree_isomorphism import *
-from networkx_algo_common_subtree.utils import graph_str
+from networkx_algo_common_subtree.utils import write_network_text
 from itertools import chain, combinations
 import time
 
@@ -16,26 +16,23 @@ def input_trees():
     leaves = 0
 
     for line in lines:
-        level = 0
         trees.append(nx.DiGraph())
         newick = line.split()
-        trees[-1].add_node(0, value= 0, moved= 0, level= 0)
+        trees[-1].add_node(0, value= 0, moved= 0, label= 0)
         current_node = 0
         new_node = 0
         for i in range(len(newick)):
 
             if newick[i] == "(":
                 new_node += 1
-                level += 1
                 trees[-1].add_edge(current_node, new_node)
                 trees[-1].nodes[new_node]["value"] = 0
                 trees[-1].nodes[new_node]["moved"] = 0
-                trees[-1].nodes[new_node]["level"] = level
+                trees[-1].nodes[new_node]["label"] = 0
                 current_node = new_node
         
             elif newick[i] == ")":
                 current_node = next(trees[-1].predecessors(current_node))
-                level -= 1
             
             else:
                 number = int(newick[i])
@@ -43,9 +40,9 @@ def input_trees():
                 trees[-1].add_edge(current_node, new_node)
                 trees[-1].nodes[new_node]["value"] = number
                 trees[-1].nodes[new_node]["moved"] = 0
-                trees[-1].nodes[new_node]["level"] = level + 1
+                trees[-1].nodes[new_node]["label"] = 0
                 leaves = leaves + 1
-    
+
     return trees, leaves / len(trees)
 
 
@@ -61,23 +58,26 @@ def powerset(iterable):
 def isomorphism_subtree(node1, node2, trees):
 
     isomorphic = isomorphism.rooted_tree_isomorphism(trees[0], node1, trees[1], node2)
+    list_leaves = [[], []]
     leaves = 0
 
     if len(isomorphic) != 0:
-        label1_aux = []
-        label2_aux = []
         for k in range (len(isomorphic)):
             try:
                 next(trees[0].successors(isomorphic[k][0]))
             except StopIteration:
                 if trees[0].nodes[isomorphic[k][0]]["value"] != 0:
+                    list_leaves[0].append(trees[0].nodes[isomorphic[k][0]]["value"])
+                    list_leaves[1].append(trees[1].nodes[isomorphic[k][1]]["value"])
                     leaves += 1
-                    label1_aux.append(trees[0].nodes[isomorphic[k][0]]["value"])
-                    label2_aux.append(trees[1].nodes[isomorphic[k][1]]["value"])
+
+        list_leaves[0].sort()
+        list_leaves[1].sort()
+
+        if list_leaves[0] == list_leaves[1]:
+            return isomorphic, leaves
         
-        return isomorphic, label1_aux, label2_aux, leaves
-        
-    return -1, -1, -1, -1
+    return -1, -1
 
 
 # For a defined pair of nodes, will verify if there ir an isomorphic subtree in the almost v tree
@@ -136,13 +136,13 @@ def almost_v_tree(father1, father2, trees):
 # Get the isomorphic subtree rotted in father1 in tree 1 and father2 in tree 2
 def v_tree(father1, father2, trees):  
     isomorphic = []
-    iso, values_1, values_2, leaves = isomorphism_subtree(father1, father2, trees)
+    iso, leaves = isomorphism_subtree(father1, father2, trees)
     if iso != -1:
         for i in iso:
             trees[0].nodes[i[0]]["moved"] = 1
             trees[1].nodes[i[1]]["moved"] = 1
         isomorphic.append(iso)
-    return isomorphic, 0, leaves
+    return isomorphic, leaves
 
 
 # Move all leaves to the same position in both trees in relation to its subgraph
@@ -215,6 +215,55 @@ def path_leaves(nodes_to_move, trees):
     return path_up, path_down
 
 
+def path_general_nodes(path_up, path_down, node1, node2, trees):
+    current_path_up = []
+    current_path_down = []
+    initial_pos = trees[0].predecessors(node1)
+    final_pos = trees[0].predecessors(node2)
+
+    # Will get all predecessors of the leaf that needs to be moved
+    while True:
+        try:
+            aux = next(initial_pos)
+            current_path_up.append(aux)
+            initial_pos = trees[0].predecessors(aux)
+        except StopIteration:
+            break
+
+    # When the path to go down collides 
+    while True:
+        try:
+            aux = next(final_pos)
+            if aux in current_path_up:
+                index = current_path_up.index(aux)
+                while True:
+                    try:
+                        current_path_up.pop(index)
+                    except IndexError:
+                        break
+                break
+            current_path_down.append(aux)
+            final_pos = trees[0].predecessors(aux)
+        except StopIteration:
+            break
+    
+    keys = path_up.keys()
+    for k in current_path_up:
+        if k not in keys:
+            path_up[k] = [node1]
+        else:
+            path_up[k].append(node1)
+
+    keys = path_down.keys()
+    for k in current_path_down:
+        if k not in keys:
+            path_down[k] = [node1]
+        else:
+            path_down[k].append(node1)
+
+    return path_up, path_down
+
+
 # Get all sucessors of a node in a determined tree
 # Input: an integer for the tree, an integer for the node and an empty list
 # Output: the list with all sucessors of the node
@@ -245,7 +294,8 @@ def calc_distance(trees, number_leaves):
 
 
     distance = 0
-    nodes = [0, 0]
+    last_label = 1
+    nodes = [1, 0]
     intermediate_tree = []
     for i in trees[0]:
         trees[0].nodes[i]["moved"] = 0
@@ -254,16 +304,55 @@ def calc_distance(trees, number_leaves):
         trees[1].nodes[i]["moved"] = 0
     start = time.time()
 
-    # print(list(trees[0].nodes(data=True)))
-    # print(list(trees[1].nodes(data=True)))
+    iso, leaves = v_tree(0, 0, trees)
 
+    # Comparing if both trees are isomorphic        
+    if leaves != -1:
+        set_tree = [[], []]
+        number_leaves -= leaves
+        for i in iso:
+            for j in range(len(i)):
+                set_tree[0].append(i[j][0])
+                set_tree[1].append(i[j][1])
+
+            path_up, path_down = path_leaves(set_tree, trees)
+
+        for i in path_up:
+            aux = path_up.get(i)
+            distance += 1
+
+            for j in aux:
+                try:
+                    trees[0].remove_edge(i, j)
+                except:
+                    pass
+                trees[0].add_edge(next(trees[0].predecessors(i)), j)
+
+            intermediate_tree.append([trees[0].copy(), distance])
+
+        path_down_sorted = list(path_down.keys())
+        path_down_sorted.sort()
+
+        for i in path_down_sorted:
+            aux = path_down.get(i)
+            distance += 1
+
+            for j in aux:
+                trees[0].remove_edge(next(trees[0].predecessors(j)), j)
+                trees[0].add_edge(i, j)
+
+            intermediate_tree.append([trees[0].copy(), distance])
+    
+    path_up = dict()
+    path_down = dict()
+    
     while number_leaves != 0:
 
         try:
             trees[1].nodes[nodes[1]]
         except KeyError:
             nodes[0] += 1
-            nodes[1] = 0
+            nodes[1] = 1
             try:
                 trees[0].nodes[nodes[0]]
             except:
@@ -276,8 +365,7 @@ def calc_distance(trees, number_leaves):
             # index 0 refers to the first tree while index 1 refers to the second tree
             set_tree = [[], []]
 
-            iso, is_v_tree, leaves = v_tree(nodes[0], nodes[1], trees)
-            
+            iso, leaves = v_tree(nodes[0], nodes[1], trees)
             
             if leaves != -1:
                 number_leaves -= leaves
@@ -286,10 +374,10 @@ def calc_distance(trees, number_leaves):
                         set_tree[0].append(i[j][0])
                         set_tree[1].append(i[j][1])
 
-                path_up, path_down = path_leaves(set_tree, trees)
+                path_up_leaves, path_down_leaves = path_leaves(set_tree, trees)
 
-                for i in path_up:
-                    aux = path_up.get(i)
+                for i in path_up_leaves:
+                    aux = path_up_leaves.get(i)
                     distance += 1
 
                     for j in aux:
@@ -301,11 +389,11 @@ def calc_distance(trees, number_leaves):
 
                     intermediate_tree.append([trees[0].copy(), distance])
 
-                path_down_sorted = list(path_down.keys())
+                path_down_sorted = list(path_down_leaves.keys())
                 path_down_sorted.sort()
 
                 for i in path_down_sorted:
-                    aux = path_down.get(i)
+                    aux = path_down_leaves.get(i)
                     distance += 1
 
                     for j in aux:
@@ -314,18 +402,72 @@ def calc_distance(trees, number_leaves):
 
                     intermediate_tree.append([trees[0].copy(), distance])
 
+                # If both isometric subtrees have fathers with different labels
+                predecessor = [next(trees[0].predecessors(nodes[0])), next(trees[1].predecessors(nodes[1]))]
+
+                if trees[0].nodes[predecessor[0]]["label"] == 0 and trees[1].nodes[predecessor[1]]["label"] == 0:
+                    trees[0].nodes[predecessor[0]]["label"] = last_label 
+                    trees[1].nodes[predecessor[1]]["label"] = last_label
+                    last_label += 1
+                else:
+                    if trees[0].nodes[predecessor[0]]["label"] != trees[1].nodes[predecessor[1]]["label"]:
+
+                        if trees[0].nodes[predecessor[0]]["label"] != 0 and trees[1].nodes[predecessor[1]]["label"] == 0:
+                            pass
+
+                        elif trees[0].nodes[predecessor[0]]["label"] == 0 and trees[1].nodes[predecessor[1]]["label"] != 0:
+                            correct_label_node = 0
+                            for i in trees[0]:
+                                if trees[1].nodes[predecessor[1]]["label"] == trees[0].nodes[i]["label"]:
+                                    correct_label_node = i
+                            correct_label_node = next(trees[0].successors(correct_label_node))
+                            path_up, path_down = path_general_nodes(path_up, path_down, nodes[0], correct_label_node, trees)
+
+                        else:
+                            correct_label_node = 0
+                            for i in trees[0]:
+                                if trees[1].nodes[predecessor[1]]["label"] == trees[0].nodes[i]["label"]:
+                                    correct_label_node = i
+                            correct_label_node = next(trees[0].successors(correct_label_node))
+                            path_up, path_down = path_general_nodes(path_up, path_down, nodes[0], correct_label_node, trees)    
+
             nodes[1] += 1
 
         elif trees[1].nodes[nodes[1]]["moved"] == 1:
             nodes[1] += 1
             if nodes[1] >= len(trees[1]):
                 nodes[0] += 1
-                nodes[1] = 0
+                nodes[1] = 1
         
         else:
             nodes[0] += 1
-            nodes[1] = 0            
-    
+            nodes[1] = 1   
+
+    for i in path_up:
+        aux = path_up.get(i)
+        distance += 1
+
+        for j in aux:
+            try:
+                trees[0].remove_edge(i, j)
+            except:
+                pass
+            trees[0].add_edge(next(trees[0].predecessors(i)), j)
+
+        intermediate_tree.append([trees[0].copy(), distance])
+
+    path_down_sorted = list(path_down.keys())
+    path_down_sorted.sort()
+
+    for i in path_down_sorted:
+        aux = path_down.get(i)
+        distance += 1
+
+        for j in aux:
+            trees[0].remove_edge(next(trees[0].predecessors(j)), j)
+            trees[0].add_edge(i, j)
+
+        intermediate_tree.append([trees[0].copy(), distance])
 
     distance += initial_size_tree1 - initial_size_tree2
     end = time.time()
@@ -335,4 +477,8 @@ def calc_distance(trees, number_leaves):
 
 if __name__ == '__main__':
     trees, number_leaves = input_trees()
+    # print(write_network_text(trees[0], with_labels = False))
+    # print(write_network_text(trees[1], with_labels = False))
+    # print(list(trees[0].nodes(data= True)))
+    # print(list(trees[1].nodes(data= True)))
     total_distance, duration, intermediate_tree = calc_distance(trees, number_leaves)
