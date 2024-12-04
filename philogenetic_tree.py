@@ -50,7 +50,7 @@ def input_trees():
 
 if __name__ == '__main__':
     trees, number_leaves = input_trees()
-    combination = list(combinations(range(len(trees)), 2))
+    number_trees = len(trees)
     start = time.time()
 
     first_interation = 0
@@ -58,57 +58,114 @@ if __name__ == '__main__':
     sum_distance = 0
     a = 0
 
-    while len(combination) > 1:
+    median_trees = []
+    for i in range(number_trees):
+        median_trees.append([])
+        for j in range(number_trees):
+            median_trees[i].append(0)
 
-        min = sys.maxsize
-        combination = list(combinations(range(len(trees)), 2))
-        current_index = 0
-        combination_index = 0
-        distances = []
-        for i in combination:
-            new = [trees[i[0]].copy(),trees[i[1]].copy()]
-                
-            total_distance, duration, intermediate_tree = distance.calc_distance(new, number_leaves)
-            # print(f'Quantidade de execuções: {a}')
-            # print(f'Duração : {duration}')
+    min = sys.maxsize
+    index = [0, 0]
 
+    for i in range(number_trees):
+        for j in range(i + 1, number_trees):
+            if i != j:
+                new = [trees[i].copy(),trees[j].copy()]
+                total_distance, duration, intermediate_tree = distance.calc_distance(new, number_leaves)
 
-            try:
-                if len(intermediate_tree) == 0:
-                    distances.append([i[0], i[1], trees[i[0]].copy()])
-                elif len(intermediate_tree) == 1:
-                    distances.append([i[0], i[1], intermediate_tree[0][0].copy()])
-                else:
-                    distances.append([i[0], i[1], intermediate_tree[total_distance//2][0].copy()])
-            except IndexError:
-                distances.append([i[0], i[1], intermediate_tree[-2][0].copy()])
+                try:
+                    if len(intermediate_tree) == 0:
+                        median_trees[i][j] = [trees[i].copy(), total_distance]
+                        median_trees[j][i] = [trees[i].copy(), total_distance]
+                    elif len(intermediate_tree) == 1:
+                        median_trees[i][j] = [intermediate_tree[0][0].copy(), total_distance]
+                        median_trees[j][i] = [intermediate_tree[0][0].copy(), total_distance]
+                    else:
+                        median_trees[i][j] = [intermediate_tree[total_distance//2][0].copy(), total_distance]
+                        median_trees[j][i] = [intermediate_tree[total_distance//2][0].copy(), total_distance]
 
-            if total_distance <= min:
-                min = total_distance
-                combination_index = current_index
+                except IndexError:
+                    median_trees[i][j] = [intermediate_tree[-2][0].copy(), total_distance]
+                    median_trees[j][i] = [intermediate_tree[-2][0].copy(), total_distance]
 
-            if first_interation == 0 :
+                if total_distance <= min:
+                    min = total_distance
+                    index[0] = i
+                    index[1] = j
+
                 sum_distance += total_distance
                 if closest < total_distance:
                     closest = total_distance
-                
+    
+    trees.pop(index[1])
+    trees.pop(index[0])
+    trees.append(median_trees[index[0]][index[1]][0])
 
-            current_index += 1
-        
-        first_interation = 1
-        a += 1
-        print(f'Execution of number {a}')
+    for i in range(number_trees):
+        median_trees[i].pop(index[1])
+        median_trees[i].pop(index[0])
 
-        trees.pop(distances[combination_index][1]) 
-        trees.pop(distances[combination_index][0])
-        trees.append(distances[combination_index][2])
+    median_trees.pop(index[1])
+    median_trees.pop(index[0])
+    
+    number_trees -= 1
+    while number_trees > 1:
+
+        min = sys.maxsize
+        index = [0, 0]
+        print(number_trees)
+        print(trees)
+        median_trees.append([])
+
+        for i in range(number_trees):
+            for j in range(i + 1, number_trees):
+                if j == number_trees - 1:
+                    new = [trees[i].copy(),trees[j].copy()]
+                    total_distance, duration, intermediate_tree = distance.calc_distance(new, number_leaves)
+                    try:
+                        if len(intermediate_tree) == 0:
+                            median_trees[i].append([trees[i].copy(), total_distance])
+                            median_trees[j].append([trees[i].copy(), total_distance])
+                        elif len(intermediate_tree) == 1:
+                            median_trees[i].append([intermediate_tree[0][0].copy(), total_distance])
+                            median_trees[j].append([intermediate_tree[0][0].copy(), total_distance])
+                        else:
+                            median_trees[i].append([intermediate_tree[total_distance//2][0].copy(), total_distance])
+                            median_trees[j].append([intermediate_tree[total_distance//2][0].copy(), total_distance])
+
+                    except IndexError:
+                        median_trees[i].append([intermediate_tree[-2][0].copy(), total_distance])
+                        median_trees[j].append([intermediate_tree[-2][0].copy(), total_distance])
+
+                    
+                    if total_distance <= min:
+                        min = total_distance
+                        index[0] = i
+                        index[1] = j
+                else:
+                    if median_trees[i][j][1] <= min:
+                        min = median_trees[i][j][1]
+                        index[0] = i
+                        index[1] = j
+
+        median_trees[-1].append(0)
+
+        trees.pop(index[1])
+        trees.pop(index[0])
+        trees.append(median_trees[index[0]][index[1]][0])
+
+        for i in range(number_trees):
+            median_trees[i].pop(index[1])
+            median_trees[i].pop(index[0])
+
+        median_trees.pop(index[1])
+        median_trees.pop(index[0])
+        number_trees -= 1
 
     end = time.time()
-
-    f = open("output/Output_dataHou78.txt", "w")
-    # f.write("Consensus tree =")
+    print(end - start)
+    f = open("output/Output_dataHou78_2.txt", "w")
     consensus = trees[0].copy()
-    # f.write(graph_str(consensus))
 
     f.write("Duration = ")
     f.write(str(end - start))
@@ -127,7 +184,7 @@ if __name__ == '__main__':
         sum += total_distance
 
     f.write("\nClosest = ")
-    f.write(str(max - (closest)/2))
+    f.write(str(max - (closest) / 2))
 
     f.write("\nMedian = ")
-    f.write(str(sum - (sum_distance)/2))
+    f.write(str(sum - (sum_distance) / (len(trees) - 1)))
