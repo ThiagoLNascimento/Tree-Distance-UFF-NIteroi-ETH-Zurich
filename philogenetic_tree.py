@@ -113,8 +113,6 @@ if __name__ == '__main__':
 
         min = sys.maxsize
         index = [0, 0]
-        print(number_trees)
-        print(trees)
         median_trees.append([])
 
         for i in range(number_trees):
@@ -163,7 +161,6 @@ if __name__ == '__main__':
         number_trees -= 1
 
     end = time.time()
-    print(end - start)
     f = open("output/Output_dataHou78_2.txt", "w")
     consensus = trees[0].copy()
 
