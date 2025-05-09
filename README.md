@@ -1,4 +1,4 @@
-# Tree-Distance-UFF-BASEL
+# Tree-Distance-UFF-ETH
 Algorithm proposed in the article Determining distances and consensus between trees
 
 For a better explanation for this algortihm consults the article named above.
