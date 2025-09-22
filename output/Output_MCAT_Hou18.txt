@@ -1,0 +1,11 @@
+Max distance among input = 15
+Sum of distance between all input = 29882
+Duration = 1.2735607624053955
+Maximun distance between the conseunsus and all input: 13
+Sum of the distance between the consensus and all input: 594
+Closest = 5.5
+Median = 246.53488372093022
+Normalized gap (closest) = 0.7333333333333333
+Normalized gap (median) = 0.5647541420275958
+Closest = max / (max input / 2) = 15 / (13 / 2) = 2.3
+Median = Sum / (sum_input / 87 ) = 594 / (29882 / 86) = 1.71

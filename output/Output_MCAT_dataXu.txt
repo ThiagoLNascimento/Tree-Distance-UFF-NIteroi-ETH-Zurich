@@ -1,6 +1,0 @@
-Max distance among input = 66
-Duration = 0.39624929428100586
-Maximum distance between the conseunsus and all input: 66
-Sum of the distance between the consensus and all input: 15024
-Closest = 33.0
-Median = 7633.35

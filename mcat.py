@@ -3,14 +3,13 @@ import networkx as nx
 from networkx.algorithms import isomorphism
 from networkx_algo_common_subtree.tree_isomorphism import *
 from networkx_algo_common_subtree.utils import write_network_text
-from itertools import combinations
 import time
 import sys
 
 # Read input file (format Newick)
-def input_trees():
+def input_trees(file_name, folder_name):
     
-    f = open("datasets/dataHou78.txt", "r")
+    f = open("datasets/" + folder_name + "/" + file_name +".txt", "r")
 
     lines = f.readlines()
     trees = []
@@ -87,8 +86,6 @@ def mcat(trees, current_number_leaves):
     
 
     while current_number_leaves > 0:
-        a = current_number_leaves
-        print(current_number_leaves)
 
         number_leaves = -1
         for i in trees[0]:
@@ -130,7 +127,6 @@ def mcat(trees, current_number_leaves):
                                 break
                         if added == 0:
                             position_leaves[iso[i][j][0]].append([trees[i + 1].nodes[iso[i][j][1]]["value"], 1])
-            
             for i in position_leaves:
                 aux = position_leaves.get(i)
                 size = len(position_leaves.get(i))
@@ -199,11 +195,6 @@ def mcat(trees, current_number_leaves):
                         trees[0].remove_node(iso[0][j][0]) 
                     trees[i + 1].remove_node(iso[i][j][1])
     
-        if current_number_leaves == a:
-            print("a")
-            while True:
-                pass
-
 
     for i in range (len(auxiliary_trees) - 1, -1, -1):
         trees[0].add_nodes_from(auxiliary_trees[i][0].nodes(data=True))
@@ -214,47 +205,58 @@ def mcat(trees, current_number_leaves):
     return trees[0]
 
 if __name__ == '__main__':
-    trees, number_leaves = input_trees()
+    file_name = sys.argv[2]
+    folder_name = sys.argv[1]
+    trees, number_leaves = input_trees(file_name, folder_name)
 
     number_trees = len(trees)
-    closest = 0
+    max_distance_input = 0
     sum_distance_input = 0
-    max_input = 0
+    pior_mediana = 0
     
     for i in range(number_trees):
-        for j in range(i + 1, number_trees):
-            if i != j:
+        somatorio_distancia_atual = 0
+        for j in range(number_trees):
+            if i != j: 
                 new = [trees[i].copy(),trees[j].copy()]
                 total_distance, duration, intermediate_tree = distance.calc_distance(new, number_leaves, 0)
 
-                if total_distance > max_input:
-                    max_input = total_distance
+                if j > i:
+                    sum_distance_input += total_distance
+                if max_distance_input < total_distance:
+                    max_distance_input = total_distance
 
-                sum_distance_input += total_distance
-                if closest < total_distance:
-                    closest = total_distance
+            
+                somatorio_distancia_atual += total_distance
+
+        if pior_mediana < somatorio_distancia_atual:
+            pior_mediana = somatorio_distancia_atual
 
     start = time.time()
     consensus = mcat(trees, number_leaves)
     end = time.time()
+    trees, number_leaves = input_trees(file_name, folder_name)
 
-    trees, number_leaves = input_trees()
     max = 0
     sum = 0
-    trees, number_leaves = input_trees()
+    array = []
     for i in trees:
         new = [i.copy(),consensus.copy()]    
-        total_distance, duration, intermediate_tree = distance.calc_distance(new, number_leaves, 0) 
+        total_distance, duration, intermediate_tree = distance.calc_distance(new, number_leaves, 0)
 
         if total_distance > max:
             max = total_distance
 
         sum += total_distance
 
-    f = open("output/Output_MCAT_dataHou78.txt", "w")
-    f.write("Max distance among input = " + str(max_input))
+
+    f = open("output/Output_MCAT" + folder_name + ".txt", "a")
+    f.write("Max distance among input = " + str(max_distance_input))
+    f.write("\nSum of distance between all input = " + str(sum_distance_input))
     f.write("\nDuration = " + str(end - start))
-    f.write("\nMaximum distance between the conseunsus and all input: " + str(max))
+    f.write("\nMaximun distance between the conseunsus and all input: " + str(max))
     f.write("\nSum of the distance between the consensus and all input: " + str(sum))
-    f.write("\nClosest = " + str(max - (closest) / 2))
-    f.write("\nMedian = " + str(sum - (sum_distance_input) / (len(trees) - 1)))
+    f.write("\nClosest = " + str((max) - (max_distance_input / 2)))
+    f.write("\nMedian = " + str((sum) - ((sum_distance_input / (len(trees) - 1)))))
+    f.write("\nNormalized gap (closest) = " + str(((max) - ((max_distance_input / 2))) / (max_distance_input - ((max_distance_input / 2)))))
+    f.write("\nNormalized gap (median) = " + str(((sum) - ((sum_distance_input) / (len(trees) - 1))) / (pior_mediana - ((sum_distance_input) / (len(trees) - 1)))))

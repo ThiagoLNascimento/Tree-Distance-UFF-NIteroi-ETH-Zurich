@@ -20,48 +20,48 @@ def removeOnlyChild(list):
         if i == len(list) and aux:
             aux = 0
             i = 0
-    print(list)
     return list
 
 
-def createTree(leaves):
-    list = ["(", ")"]
-    nodes = [0] * leaves
-    for i in range(int(math.log(leaves, 2))):
-        left = random.randint(1, len(list) - 1)
-        list.insert(left, "(")
-        right = random.randint(1 , len(list) - 1)
-        while left >= right:
+def createTree(leaves, count):
+    for i in range(4):
+        list = ["(", ")"]
+        nodes = [0] * leaves
+        for i in range(int(math.log(leaves, 2))):
+            left = random.randint(1, len(list) - 1)
+            list.insert(left, "(")
             right = random.randint(1 , len(list) - 1)
+            while left >= right:
+                right = random.randint(1 , len(list) - 1)
+            
+            list.insert(right, ")")
         
-        list.insert(right, ")")
-    
-    
-    for i in range(leaves):
-        leaf = random.randint(1, leaves)
-        pos = random.randint(1, len(list) - 2)
-        while nodes[leaf - 1] == 1:
+        
+        for i in range(leaves):
             leaf = random.randint(1, leaves)
-        nodes[leaf - 1] = 1
-        list.insert(pos, leaf)
+            pos = random.randint(1, len(list) - 2)
+            while nodes[leaf - 1] == 1:
+                leaf = random.randint(1, leaves)
+            nodes[leaf - 1] = 1
+            list.insert(pos, leaf)
 
-    list = removeOnlyChild(list)
+        list = removeOnlyChild(list)
 
-    list.pop()
-    list.pop(0)
-    
-    f = open("OutputTree.txt", "a")
-    string = ""
-    for i in list:
-        string += str(i) + " "
-    
-    f.write(string + "\n")
-    print(string)
+        list.pop()
+        list.pop(0)
+        
+        f = open("Datasets/" + str(leaves) + "/" + str(count) + ".txt", "a")
+        string = ""
+        for i in list:
+            string += str(i) + " "
+        
+        f.write(string + "\n")
     
     return 
 
-# amount = sys.argv[1]
-lenght = sys.argv[1]
+lenght = int(sys.argv[1])
+amount = int(sys.argv[2])
 
 vector = []
-createTree(lenght)
+for i in range (amount):
+    createTree(lenght, i)

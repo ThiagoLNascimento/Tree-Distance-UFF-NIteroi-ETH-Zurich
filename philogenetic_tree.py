@@ -9,8 +9,7 @@ import sys
 # Read input file (format Newick)
 def input_trees(file_name, folder_name):
     
-    # f = open("datasets/" + folder_name + "/" + file_name +".txt", "r")
-    f = open("datasets/dataXu.txt", "r")
+    f = open("datasets/" + folder_name + "/" + file_name +".txt", "r")
 
     lines = f.readlines()
     trees = []
@@ -58,10 +57,9 @@ if __name__ == '__main__':
     number_trees = len(trees)
     start = time.time()
 
-    closest = 0
+    max_distance_input = 0
     sum_distance_input = 0
-    max_input = 0
-    iterations = 0
+    pior_mediana = 0
 
     median_trees = []
     for i in range(number_trees):
@@ -73,7 +71,8 @@ if __name__ == '__main__':
     index = [0, 0]
 
     for i in range(number_trees):
-        for j in range(i + 1, number_trees):
+        somatorio_distancia_atual = 0
+        for j in range(number_trees):
             if i != j:
                 new = [trees[i].copy(),trees[j].copy()]
                 total_distance, duration, intermediate_tree = distance.calc_distance(new, number_leaves, 1)
@@ -98,22 +97,29 @@ if __name__ == '__main__':
                                 median_trees[j][i] = [trees[i].copy(), total_distance]
                                 break
 
-                if total_distance > max_input:
-                    max_input = total_distance
-
-                if total_distance <= min:
+                if total_distance < min:
                     min = total_distance
-                    index[0] = i
-                    index[1] = j
+                    index[0] = i - 1
+                    index[1] = j - 1
 
-                sum_distance_input += total_distance
-                if closest < total_distance:
-                    closest = total_distance
+                if j > i:
+                    sum_distance_input += total_distance
+
+                somatorio_distancia_atual += total_distance
+
+                if max_distance_input < total_distance:
+                    max_distance_input = total_distance
+
+        if pior_mediana < somatorio_distancia_atual:
+            pior_mediana = somatorio_distancia_atual
     
-    # f.write("Max distance among input = " + str(max_input))
+    if index[1] > index[0]:
+        trees.pop(index[0])
+        trees.pop(index[1])
+    else:
+        trees.pop(index[1])
+        trees.pop(index[0])
 
-    trees.pop(index[1])
-    trees.pop(index[0])
     trees.append(median_trees[index[0]][index[1]][0])
 
     for i in trees[-1]:
@@ -128,9 +134,6 @@ if __name__ == '__main__':
     median_trees.pop(index[1])
     median_trees.pop(index[0])
 
-    iterations += 1 
-    # print(f'Execution of number: {iterations}')
-    # print(f'Duration : {time.time() - start}')
     number_trees -= 1
     while number_trees > 1:
 
@@ -189,17 +192,12 @@ if __name__ == '__main__':
 
         median_trees.pop(index[1])
         median_trees.pop(index[0])
-        iterations += 1
-        # print(f'Execution of number: {iterations}')
-        # print(f'Duração : {time.time() - start}')
         number_trees -= 1 
  
     end = time.time()
     
     consensus = trees[0].copy()
 
-    # f.write("\nDuration = ")
-    # f.write(str(end - start))
 
     # Calcute the maximum distance between the inputs and the consensus
     max = 0
@@ -215,21 +213,13 @@ if __name__ == '__main__':
 
         sum += total_distance
 
-    # f.write("\nMaximum distance between the conseunsus and all input: " + str(max))
-    # f.write("\nSum of the distance between the consensus and all input: " + str(sum))
-    # f.write("\nClosest = ")
-    # f.write(str(max - (closest) / 2))
-
-    # f.write("\nMedian = ")
-    # f.write(str(sum - (sum_distance_input) / (len(trees) - 1)))
-
-    f = open("output/Output_philo_Xu.txt", "w")
-    f.write("Max distance among input = " + str(max_input))
+    f = open("output/Output_Philo" + folder_name + + ".txt", "a")
+    f.write("Max distance among input = " + str(max_distance_input))
+    f.write("\nSum of distance between all input = " + str(sum_distance_input))
     f.write("\nDuration = " + str(end - start))
-    f.write("\nMaximum distance between the conseunsus and all input: " + str(max))
+    f.write("\nMaximun distance between the conseunsus and all input: " + str(max))
     f.write("\nSum of the distance between the consensus and all input: " + str(sum))
-    f.write("\nClosest = " + str(max - (closest) / 2))
-    f.write("\nMedian = " + str(sum - (sum_distance_input) / (len(trees) - 1)))
-
-    # f = open("output/Output_" + folder_name + "_phylo.txt", "a")
-    # f.write("\n" + str(end - start) + " , " + str(abs(max - (closest) / 2)) + " , " + str(abs(sum - (sum_distance_input) / (len(trees) - 1))))
+    f.write("\nClosest = " + str((max) - (max_distance_input / 2)))
+    f.write("\nMedian = " + str((sum) - ((sum_distance_input / (len(trees) - 1)))))
+    f.write("\nNormalized gap (closest) = " + str(((max) - ((max_distance_input / 2))) / (max_distance_input - ((max_distance_input / 2)))))
+    f.write("\nNormalized gap (median) = " + str(((sum) - ((sum_distance_input) / (len(trees) - 1))) / (pior_mediana - ((sum_distance_input) / (len(trees) - 1)))))
