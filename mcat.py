@@ -1,4 +1,5 @@
 import distance
+import tree_to_newick
 import networkx as nx
 from networkx.algorithms import isomorphism
 from networkx_algo_common_subtree.tree_isomorphism import *
@@ -212,7 +213,7 @@ if __name__ == '__main__':
     number_trees = len(trees)
     max_distance_input = 0
     sum_distance_input = 0
-    pior_mediana = 0
+    worst_median = 0
     
     for i in range(number_trees):
         somatorio_distancia_atual = 0
@@ -229,8 +230,8 @@ if __name__ == '__main__':
             
                 somatorio_distancia_atual += total_distance
 
-        if pior_mediana < somatorio_distancia_atual:
-            pior_mediana = somatorio_distancia_atual
+        if worst_median < somatorio_distancia_atual:
+            worst_median = somatorio_distancia_atual
 
     start = time.time()
     consensus = mcat(trees, number_leaves)
@@ -248,6 +249,10 @@ if __name__ == '__main__':
             max = total_distance
 
         sum += total_distance
+    
+    newick = "("
+    newick += tree_to_newick.create_newick(consensus, 0)
+    newick += ")"
 
 
     f = open("output/Output_MCAT" + folder_name + ".txt", "a")
@@ -259,4 +264,5 @@ if __name__ == '__main__':
     f.write("\nClosest = " + str((max) - (max_distance_input / 2)))
     f.write("\nMedian = " + str((sum) - ((sum_distance_input / (len(trees) - 1)))))
     f.write("\nNormalized gap (closest) = " + str(((max) - ((max_distance_input / 2))) / (max_distance_input - ((max_distance_input / 2)))))
-    f.write("\nNormalized gap (median) = " + str(((sum) - ((sum_distance_input) / (len(trees) - 1))) / (pior_mediana - ((sum_distance_input) / (len(trees) - 1)))))
+    f.write("\nNormalized gap (median) = " + str(((sum) - ((sum_distance_input) / (len(trees) - 1))) / (worst_median - ((sum_distance_input) / (len(trees) - 1)))))
+    f.write("\n" + newick)
